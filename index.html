@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PocketScan – Scan & Merge PDFs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<!-- Libraries load from a CDN; if one is blocked, the next is tried -->
+<script>
+window.libsReady = (async () => {
+  const LIBS = [
+    ['PDFLib', ['https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js', 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js']],
+    ['pdfjsLib', ['https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', 'https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js']],
+    ['Sortable', ['https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js', 'https://unpkg.com/sortablejs@1.15.2/Sortable.min.js']]
+  ];
+  const load = src => new Promise((ok, fail) => { const t = document.createElement('script'); t.src = src; t.onload = ok; t.onerror = fail; document.head.appendChild(t); });
+  return Promise.all(LIBS.map(async ([name, urls]) => {
+    for (const u of urls) {
+      try { await load(u); } catch (e) { continue; }
+      if (window[name]) { if (name === 'pdfjsLib') window.pdfjsBase = u; return true; }
+    }
+    return false;
+  })).then(r => r.every(Boolean));
+})();
+</script>
+<style>
+:root{color-scheme:dark;--bg:#0d0f12;--panel:#15181d;--panel2:#1d2128;--line:#2a2f38;--ink:#eceef2;--mute:#8d96a3;--acc:#9be7c4;--accInk:#062a1b;--danger:#ff7a7a;--r:16px;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,-apple-system,sans-serif;overflow-x:clip}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+[hidden]{display:none!important}
+.btn{display:inline-flex;white-space:nowrap;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-weight:600;font-size:15px;transition:transform .12s,background .2s}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible,.chip:focus-visible,.ib:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.btn.pri{background:var(--acc);color:var(--accInk);border-color:transparent}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.45;pointer-events:none}
+.btn svg,.ib svg{width:20px;height:20px;flex:none}
+.ib{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+
+/* header */
+header{position:sticky;top:0;z-index:10;padding:calc(var(--st) + 14px) max(4vw,16px) 12px;background:rgba(13,15,18,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:12px;max-width:1240px;margin:auto}
+.brand{display:flex;align-items:center;gap:10px;font:700 21px/1 'Space Grotesk',sans-serif;letter-spacing:-.01em;margin-right:auto}
+.logo{width:32px;height:32px;border-radius:9px;background:var(--acc);display:grid;place-items:center}
+.stats{display:flex;gap:8px;flex-wrap:wrap;max-width:1240px;margin:10px auto 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--mute);white-space:nowrap}
+.stat b{color:var(--ink);font-weight:600}
+
+main{max-width:1240px;margin:auto;padding:18px max(4vw,16px) calc(120px + var(--sb))}
+
+/* empty */
+.empty{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:center;padding:24px 0}
+.empty h1{font:700 clamp(32px,5vw,50px)/1.05 'Space Grotesk',sans-serif;letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance}
+.empty p{color:var(--mute);margin:0 0 24px;max-width:46ch}
+.empty .acts{display:flex;gap:10px;flex-wrap:wrap}
+.art{background:radial-gradient(120% 90% at 50% 0%,#1b2a24 0%,var(--panel) 60%);border:1px solid var(--line);border-radius:28px;aspect-ratio:1/1;display:grid;place-items:center;overflow:hidden}
+.art svg{width:78%;height:auto}
+.beam{animation:beam 2.8s ease-in-out infinite}
+@keyframes beam{0%,100%{transform:translateY(0)}50%{transform:translateY(150px)}}
+.feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:28px}
+.feat div{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;font-size:14px;color:var(--mute)}
+.feat b{display:block;color:var(--ink);font-size:15px;margin-bottom:2px}
+
+/* toolbar + grid */
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.bar h2{font:600 18px/1.2 'Space Grotesk',sans-serif;margin:0 auto 0 0}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{padding:6px 12px;border-radius:999px;font-size:13px;color:var(--mute);min-height:34px}
+.seg button[aria-pressed=true]{background:var(--panel2);color:var(--ink)}
+.hint{font-size:13px;color:var(--mute);margin:-4px 0 14px}
+#grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px;user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:grab}
+.th{aspect-ratio:3/4;border-radius:10px;background:#0a0b0d;display:grid;place-items:center;overflow:hidden}
+.th img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .25s;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.th img.side{transform-origin:center}
+.num{position:absolute;top:16px;left:16px;min-width:26px;height:26px;padding:0 7px;border-radius:999px;background:rgba(0,0,0,.72);font-size:13px;font-weight:600;display:grid;place-items:center}
+.tag{position:absolute;top:16px;right:16px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--acc);color:var(--accInk)}
+.meta{padding:8px 2px 4px}
+.meta b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta small{color:var(--mute);font-size:12px}
+.cacts{display:flex;gap:6px}
+.cacts button{flex:1;height:36px;border-radius:10px;background:var(--panel2);display:grid;place-items:center;color:var(--mute)}
+.cacts button:hover{color:var(--ink)}
+.cacts button[data-a=del]:hover{color:var(--danger)}
+.cacts svg{width:17px;height:17px}
+.ghost-card{opacity:.35}
+.chosen{border-color:var(--acc);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.drop-on main{outline:2px dashed var(--acc);outline-offset:-8px;border-radius:20px}
+
+/* bottom bar */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px max(4vw,16px) calc(12px + var(--sb));background:linear-gradient(transparent,rgba(13,15,18,.95) 30%)}
+.dock .in{max-width:620px;margin:auto;display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.shut{width:62px;height:62px;border-radius:50%;background:var(--acc);color:var(--accInk);display:grid;place-items:center;box-shadow:0 0 0 5px rgba(155,231,196,.18)}
+.shut svg{width:28px;height:28px}
+
+/* overlays */
+.ov{position:fixed;inset:0;z-index:50;background:#000;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:calc(var(--st) + 10px) 14px 10px;background:rgba(0,0,0,.6)}
+.top h3{flex:1;margin:0;text-align:center;font:600 16px/1.2 'Space Grotesk',sans-serif}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.guide{position:absolute;inset:16% 9% 24%;border-radius:14px;pointer-events:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.28)}
+.guide i{position:absolute;width:34px;height:34px;border:3px solid var(--acc)}
+.guide i:nth-child(1){top:-2px;left:-2px;border-right:0;border-bottom:0;border-radius:14px 0 0 0}
+.guide i:nth-child(2){top:-2px;right:-2px;border-left:0;border-bottom:0;border-radius:0 14px 0 0}
+.guide i:nth-child(3){bottom:-2px;right:-2px;border-left:0;border-top:0;border-radius:0 0 14px 0}
+.guide i:nth-child(4){bottom:-2px;left:-2px;border-right:0;border-top:0;border-radius:0 0 0 14px}
+.camtop,.cambot{position:absolute;left:0;right:0;z-index:2;display:flex;align-items:center;padding:0 18px}
+.camtop{top:0;padding-top:calc(var(--st) + 12px);justify-content:space-between}
+.cambot{bottom:0;padding-bottom:calc(var(--sb) + 22px);padding-top:20px;justify-content:space-between;background:linear-gradient(transparent,rgba(0,0,0,.7))}
+.camtip{position:absolute;top:calc(var(--st) + 70px);left:0;right:0;text-align:center;font-size:14px;z-index:2;text-shadow:0 1px 4px #000}
+.bigshut{width:78px;height:78px;border-radius:50%;border:4px solid #fff;padding:4px}
+.bigshut span{display:block;width:100%;height:100%;border-radius:50%;background:#fff;transition:transform .1s}
+.bigshut:active span{transform:scale(.88)}
+.last{width:56px;height:56px;border-radius:12px;background:rgba(255,255,255,.12) center/cover;border:2px solid #fff;position:relative}
+.last b{position:absolute;top:-8px;right:-8px;background:var(--acc);color:var(--accInk);font-size:12px;min-width:22px;height:22px;border-radius:99px;display:grid;place-items:center}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3}
+.flash.go{animation:fl .35s}
+@keyframes fl{0%{opacity:.8}100%{opacity:0}}
+.cambtn{background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#fff}
+
+#stage{flex:1;position:relative;display:grid;place-items:center;overflow:hidden;touch-action:none;background:#08090b}
+#box{position:relative}
+#box canvas,#box svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.hd{fill:rgba(155,231,196,.25);stroke:#fff;stroke-width:2.5}
+#pv{max-width:calc(100% - 32px);max-height:calc(100% - 32px);box-shadow:0 8px 40px rgba(0,0,0,.6);background:#fff}
+#loupe{position:absolute;top:14px;width:112px;height:112px;border-radius:50%;border:3px solid #fff;box-shadow:0 6px 20px rgba(0,0,0,.6);pointer-events:none}
+.tools{padding:12px 14px calc(var(--sb) + 14px);background:#0d0f12;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.chip{flex:none;padding:8px 14px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:14px;min-height:40px}
+.chip[aria-pressed=true]{background:var(--acc);color:var(--accInk);border-color:transparent;font-weight:600}
+.trow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.toolnote{font-size:13px;color:var(--mute);text-align:center}
+
+/* sheet */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;place-items:end center}
+.sheet{width:min(520px,100%);background:var(--panel);border:1px solid var(--line);border-radius:24px 24px 0 0;padding:22px 20px calc(var(--sb) + 22px);animation:up .25s ease-out}
+@media(min-width:700px){.scrim{place-items:center}.sheet{border-radius:24px}}
+@keyframes up{from{transform:translateY(30px);opacity:0}}
+.sheet h3{font:700 24px/1.1 'Space Grotesk',sans-serif;margin:0 0 4px}
+.sheet .sub{color:var(--mute);font-size:14px;margin:0 0 16px}
+.field{display:flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:0 12px;margin-bottom:14px}
+.field input{flex:1;background:none;border:0;outline:0;font-size:16px;height:48px}
+.field span{color:var(--mute)}
+.sgrid{display:grid;gap:10px}
+.sgrid .btn{width:100%}
+.apps{display:flex;gap:8px;justify-content:center;margin:14px 0 4px;flex-wrap:wrap}
+.apps span{font-size:12px;color:var(--mute);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.note{font-size:13px;color:var(--mute);margin:10px 0 0;text-align:center}
+
+#busy{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);display:grid;place-items:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.bcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px 24px;width:min(320px,86vw);text-align:center}
+.spin{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:50%;margin:0 auto 12px;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.prog{height:6px;background:var(--bg);border-radius:9px;overflow:hidden;margin-top:12px}
+.prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+#toast{position:fixed;left:50%;bottom:calc(var(--sb) + 100px);transform:translateX(-50%);z-index:95;background:#f2f4f7;color:#111;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,.4);max-width:90vw;text-align:center}
+
+@media(max-width:700px){
+  .empty{grid-template-columns:minmax(0,1fr);gap:22px;padding-top:6px}
+  .art{order:-1;aspect-ratio:16/11}
+  .art svg{width:auto;height:88%}
+  .feat{grid-template-columns:minmax(0,1fr)}
+  #grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .card{padding:8px}.num{top:13px;left:13px}.tag{top:13px;right:13px}
+}
+/* mode picker */
+.modes{display:grid;gap:10px}
+.mode{display:flex;gap:14px;align-items:center;text-align:left;padding:16px;border-radius:16px;background:var(--bg);border:1px solid var(--line);min-height:84px}
+.mode:hover,.mode:focus-visible{border-color:var(--acc);outline:0}
+.mode svg{width:44px;height:44px;flex:none}
+.mode b{display:block;font-size:16px}
+.mode small{display:block;color:var(--mute);font-size:13px;line-height:1.4;margin-top:2px}
+.pill{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600}
+
+/* signature pad */
+.padwrap{position:relative;background:#fff;border-radius:14px;overflow:hidden;margin-bottom:12px}
+#padC{display:block;width:100%;height:190px;touch-action:none;cursor:crosshair}
+.padline{position:absolute;left:24px;right:24px;bottom:44px;border-top:1.5px solid #c9ccd1;pointer-events:none}
+.padline::before{content:'×';position:absolute;left:-2px;top:-24px;color:#9aa0a8;font-size:18px}
+.padhint{position:absolute;left:0;right:0;bottom:14px;text-align:center;color:#9aa0a8;font-size:13px;pointer-events:none}
+#padText{width:100%;height:50px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:0 14px;font-size:16px;margin-bottom:10px}
+#padPrev{height:130px;background:#fff;border-radius:14px;display:grid;place-items:center;font:600 54px/1 Caveat,cursive;padding:0 12px;overflow:hidden;white-space:nowrap;margin-bottom:12px}
+.padrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.inks{display:flex;gap:10px}
+.ink{width:34px;height:34px;border-radius:50%;border:3px solid var(--panel)}
+.ink[aria-pressed=true]{box-shadow:0 0 0 2px var(--acc)}
+.chk{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--mute);margin-bottom:14px}
+.chk input{width:20px;height:20px;accent-color:var(--acc)}
+.two{grid-template-columns:1fr 1fr}
+.sheet .seg{margin-bottom:14px;width:max-content}
+
+/* place signature */
+#pstage{flex:1;position:relative;display:grid;place-items:center;overflow:hidden;background:#08090b}
+#pbox{position:relative;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+#pcv{position:absolute;inset:0;width:100%;height:100%;background:#fff}
+.sig{position:absolute;outline:1.5px dashed #2f9e6e;outline-offset:2px;touch-action:none;cursor:move}
+.sig img{display:block;width:100%;height:100%;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.sig .x,.sig .rs{position:absolute;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.sig .x{top:-17px;right:-17px;background:#e5484d;color:#fff}
+.sig .x svg{width:14px;height:14px}
+.sig .rs{right:-17px;bottom:-17px;background:var(--acc);cursor:nwse-resize;touch-action:none}
+.signed{color:var(--acc)}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <div class="brand"><span class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#062a1b" stroke-width="2.4" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></span>PocketScan</div>
+    <button class="btn ghost danger" id="clearBtn" hidden>Clear all</button>
+  </div>
+  <div class="stats" id="stats" hidden>
+    <span class="stat"><b id="sPages">0</b> pages</span>
+    <span class="stat"><b id="sFiles">0</b> sources</span>
+    <span class="stat">Input <b id="sSize">0 KB</b></span>
+    <span class="stat" id="sOutWrap" hidden>Last PDF <b id="sOut">–</b></span>
+  </div>
+</header>
+
+<main id="main">
+  <section class="empty" id="empty">
+    <div>
+      <h1>Scan paper, merge PDFs, send it anywhere.</h1>
+      <p>Point your phone camera at a document, straighten it, make the paper bright white, sign it, and turn it into one PDF. You can mix in pages from PDFs you already have. When it's ready, send it to iMessage, Discord or Instagram. Everything stays on your device.</p>
+      <div class="acts">
+        <button class="btn pri" data-do="scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg>Scan with camera</button>
+        <button class="btn" data-do="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add PDFs or photos</button>
+      </div>
+      <div class="feat">
+        <div><b>Scanner</b>Snap one page or many. The paper comes out bright white and straight.</div>
+        <div><b>Merger</b>Drag pages between PDFs to reorder them, or delete them</div>
+        <div><b>Sign</b>Draw or type your signature and put it on any page</div>
+        <div><b>Share</b>Opens your phone's share sheet so you can pick an app</div>
+      </div>
+    </div>
+    <div class="art" aria-hidden="true">
+      <svg viewBox="0 0 300 300">
+        <defs><linearGradient id="bm" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#9be7c4" stop-opacity="0"/><stop offset="1" stop-color="#9be7c4" stop-opacity=".55"/></linearGradient>
+        <clipPath id="sc"><rect x="86" y="44" width="128" height="214" rx="10"/></clipPath></defs>
+        <rect x="74" y="24" width="152" height="254" rx="28" fill="#0a0b0d" stroke="#2a2f38" stroke-width="3"/>
+        <rect x="128" y="32" width="44" height="8" rx="4" fill="#1d2128"/>
+        <g clip-path="url(#sc)">
+          <rect x="86" y="44" width="128" height="214" fill="#1b2a24"/>
+          <path d="M104 78 L198 70 L204 226 L98 232 Z" fill="#f4f3ee"/>
+          <path d="M104 78 L198 70 L204 226 L98 232 Z" fill="none" stroke="#9be7c4" stroke-width="2.5"/>
+          <g fill="#c9ccd1"><rect x="114" y="96" width="60" height="7" rx="3" transform="rotate(-3 114 96)"/><rect x="115" y="114" width="72" height="4" rx="2" transform="rotate(-3 115 114)"/><rect x="116" y="126" width="66" height="4" rx="2" transform="rotate(-3 116 126)"/><rect x="117" y="138" width="70" height="4" rx="2" transform="rotate(-3 117 138)"/><rect x="117" y="160" width="50" height="4" rx="2" transform="rotate(-3 117 160)"/><rect x="118" y="172" width="68" height="4" rx="2" transform="rotate(-3 118 172)"/><rect x="118" y="184" width="62" height="4" rx="2" transform="rotate(-3 118 184)"/></g>
+          <g fill="#9be7c4"><circle cx="104" cy="78" r="5"/><circle cx="198" cy="70" r="5"/><circle cx="204" cy="226" r="5"/><circle cx="98" cy="232" r="5"/></g>
+          <g class="beam"><rect x="86" y="40" width="128" height="34" fill="url(#bm)"/><rect x="86" y="73" width="128" height="2" fill="#9be7c4"/></g>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <section id="pagesView" hidden>
+    <div class="bar">
+      <h2>Pages</h2>
+      <div class="seg" role="group" aria-label="Page size for scans" id="sizeSeg">
+        <button data-s="fit" aria-pressed="true">Fit</button><button data-s="a4" aria-pressed="false">A4</button><button data-s="letter" aria-pressed="false">Letter</button>
+      </div>
+    </div>
+    <p class="hint">Drag cards to reorder them (on a phone, press and hold first). Tap a scan to recrop it or change its filter. Use the pen button to sign a page.</p>
+    <ul id="grid"></ul>
+  </section>
+</main>
+
+<div class="dock">
+  <div class="in">
+    <button class="btn ghost" data-do="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add</button>
+    <button class="shut" data-do="scan" aria-label="Scan with camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    <button class="btn pri" id="buildBtn" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 15l2 2 4-4"/></svg>Make PDF</button>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="application/pdf,image/*" multiple hidden>
+<input type="file" id="camInput" accept="image/*" capture="environment" hidden>
+
+<!-- live camera -->
+<div class="ov" id="cam" hidden>
+  <video id="video" playsinline muted autoplay></video>
+  <div class="guide"><i></i><i></i><i></i><i></i></div>
+  <div class="flash" id="flash"></div>
+  <div class="camtop">
+    <button class="ib cambtn" id="camClose" aria-label="Close camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <span class="pill" id="camMode">Single page</span>
+    <button class="ib cambtn" id="torch" aria-label="Toggle flashlight" style="visibility:hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></button>
+  </div>
+  <div class="camtip" id="camTip">Fit the page inside the frame, then tap the shutter</div>
+  <div class="cambot">
+    <div class="last" id="camLast"><b id="camCount" hidden>0</b></div>
+    <button class="bigshut" id="shutter" aria-label="Capture"><span></span></button>
+    <button class="btn pri" id="camDone">Done</button>
+  </div>
+</div>
+
+<!-- editor -->
+<div class="ov" id="edit" hidden>
+  <div class="top">
+    <button class="btn ghost" id="edCancel">Cancel</button>
+    <h3 id="edTitle">Adjust corners</h3>
+    <button class="btn pri" id="edNext">Next</button>
+  </div>
+  <div id="stage">
+    <div id="box"><canvas id="disp"></canvas><svg id="ovl"></svg></div>
+    <canvas id="pv" hidden></canvas>
+    <canvas id="loupe" width="224" height="224" hidden></canvas>
+  </div>
+  <div class="tools">
+    <div id="t1">
+      <div class="trow">
+        <button class="btn" id="edAuto">Find edges</button>
+        <button class="btn" id="edFull">Use full photo</button>
+      </div>
+      <p class="toolnote">Drag each corner onto a corner of the page</p>
+    </div>
+    <div id="t2" hidden>
+      <div class="chips" id="chips">
+        <button class="chip" data-f="doc">Clean white</button>
+        <button class="chip" data-f="color">Color boost</button>
+        <button class="chip" data-f="gray">Grayscale</button>
+        <button class="chip" data-f="bw">Black &amp; white</button>
+        <button class="chip" data-f="original">Original</button>
+      </div>
+      <div class="trow" style="margin-top:12px">
+        <button class="ib" id="rotL" aria-label="Rotate left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+        <button class="ib" id="rotR" aria-label="Rotate right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+        <button class="btn" id="edBack">Back to crop</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- result sheet -->
+<div class="scrim" id="result" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="rT">
+    <h3 id="rT">Your PDF is ready</h3>
+    <p class="sub" id="rSub"></p>
+    <label class="field"><input id="fname" aria-label="File name" autocomplete="off"><span>.pdf</span></label>
+    <div class="sgrid">
+      <button class="btn pri" id="shPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>Share PDF</button>
+      <button class="btn" id="shImg" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg><span>Preparing images…</span></button>
+      <button class="btn" id="dl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg>Download</button>
+      <button class="btn ghost" id="rClose">Back to pages</button>
+    </div>
+    <div class="apps"><span>Messages</span><span>Discord</span><span>Instagram</span><span>Mail</span><span>WhatsApp</span></div>
+    <p class="note" id="shareNote">Share opens your phone's share sheet. Instagram only accepts images, not PDFs, so use <b>Share as images</b> for Instagram.</p>
+  </div>
+</div>
+
+<!-- single vs batch -->
+<div class="scrim" id="modeSheet" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="mT">
+    <h3 id="mT">What are you scanning?</h3>
+    <p class="sub">Either way, every page is straightened and cleaned so the paper comes out bright white.</p>
+    <div class="modes">
+      <button class="mode" data-mode="single">
+        <svg viewBox="0 0 44 44" fill="none"><rect x="10" y="5" width="24" height="34" rx="3" fill="#f4f3ee"/><path d="M15 13h14M15 18h14M15 23h10" stroke="#8d96a3" stroke-width="2" stroke-linecap="round"/></svg>
+        <span><b>Single page</b><small>Take one photo, then fine-tune the corners and the filter before saving.</small></span>
+      </button>
+      <button class="mode" data-mode="batch">
+        <svg viewBox="0 0 44 44" fill="none"><rect x="16" y="3" width="22" height="30" rx="3" fill="#5d655f"/><rect x="11" y="7" width="22" height="30" rx="3" fill="#a9b2ac"/><rect x="6" y="11" width="22" height="30" rx="3" fill="#f4f3ee"/><path d="M10 19h14M10 24h14M10 29h9" stroke="#8d96a3" stroke-width="2" stroke-linecap="round"/></svg>
+        <span><b>Multiple pages</b><small>Snap pages one after another. Each one is cropped and cleaned automatically. You can tweak any page later.</small></span>
+      </button>
+    </div>
+    <button class="btn ghost" id="modeCancel" style="width:100%;margin-top:10px">Cancel</button>
+  </div>
+</div>
+
+<!-- next page prompt (native camera fallback, batch) -->
+<div class="scrim" id="nextSheet" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="nT">
+    <h3 id="nT">Page added</h3>
+    <p class="sub">Scan the next page, or finish if that was the last one.</p>
+    <div class="sgrid"><button class="btn pri" id="nextGo">Scan next page</button><button class="btn" id="nextDone">Done</button></div>
+  </div>
+</div>
+
+<!-- signature pad -->
+<div class="scrim" id="pad" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="pT">
+    <h3 id="pT">Your signature</h3>
+    <p class="sub">Draw it with your finger, or type your name.</p>
+    <div class="seg" id="padTabs" role="group" aria-label="Signature style"><button data-t="draw" aria-pressed="true">Draw</button><button data-t="type" aria-pressed="false">Type</button></div>
+    <div id="padDraw"><div class="padwrap"><canvas id="padC"></canvas><div class="padline"></div><div class="padhint" id="padHint">Sign above the line</div></div></div>
+    <div id="padType" hidden><input id="padText" placeholder="Type your full name" autocomplete="name"><div id="padPrev">&nbsp;</div></div>
+    <div class="padrow">
+      <div class="inks"><button class="ink" data-c="#111418" style="background:#111418" aria-label="Black ink" aria-pressed="true"></button><button class="ink" data-c="#1d3fc4" style="background:#1d3fc4" aria-label="Blue ink" aria-pressed="false"></button></div>
+      <button class="btn ghost" id="padClear">Clear</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="padSave" checked> Remember my signature on this device</label>
+    <div class="sgrid two"><button class="btn" id="padCancel">Cancel</button><button class="btn pri" id="padOk">Use signature</button></div>
+  </div>
+</div>
+
+<!-- place signature -->
+<div class="ov" id="place" hidden>
+  <div class="top">
+    <button class="btn ghost" id="plCancel">Cancel</button>
+    <h3 id="plTitle">Sign page</h3>
+    <button class="btn pri" id="plDone">Done</button>
+  </div>
+  <div id="pstage"><div id="pbox"><canvas id="pcv"></canvas></div></div>
+  <div class="tools">
+    <div class="trow">
+      <button class="btn pri" id="plSig">Add my signature</button>
+      <button class="btn" id="plNew">New signature</button>
+      <button class="btn" id="plDate">Add date</button>
+    </div>
+    <p class="toolnote">Drag to move · drag the green dot to resize · red button removes</p>
+  </div>
+</div>
+
+<div id="busy" hidden><div class="bcard"><div class="spin"></div><div id="busyT">Working…</div><div class="prog" id="busyP" hidden><i id="busyBar"></i></div></div></div>
+<div id="toast" hidden></div>
+
+<script>
+function startApp() {
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+// the worker comes from the same CDN that served pdf.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = window.pdfjsBase.replace(/pdf\.min\.js$/, 'pdf.worker.min.js');
+const { PDFDocument, degrees } = PDFLib;
+
+const S = { pages: [], sources: new Map(), size: 'fit', result: null, imgs: null };
+let uid = 0; const nid = () => 'x' + (++uid);
+const FILTERS = { doc: 'Clean white', color: 'Color boost', gray: 'Grayscale', bw: 'Black & white', original: 'Original' };
+const DEF_FILTER = 'doc';
+const IC = {
+  rot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
+  sign: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-6 5-9 6.5-9S10 12 8 15s1 3 3 0 3-4 4-2 1 3 3 2M3 21h18"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+const fmt = b => b < 1024 ? b + ' B' : b < 1048576 ? Math.round(b / 1024) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const tick = () => new Promise(r => setTimeout(r, 0));
+const clamp = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
+const toBlob = (c, q = .88) => new Promise(r => c.toBlob(r, 'image/jpeg', q));
+let tt;
+function toast(m, ms = 2800) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, ms); }
+function busy(on, text = 'Working…', pct = null) {
+  $('#busy').hidden = !on; if (!on) return;
+  $('#busyT').textContent = text; $('#busyP').hidden = pct == null;
+  if (pct != null) $('#busyBar').style.width = Math.round(pct * 100) + '%';
+}
+async function loadImg(blob) {
+  const url = URL.createObjectURL(blob); const im = new Image(); im.src = url;
+  try { await im.decode(); } catch (e) { URL.revokeObjectURL(url); throw e; }
+  return im;
+}
+
+/* ---------- image pipeline: perspective warp + filters ---------- */
+function srcData(im, maxSrc) {
+  const s = Math.min(1, maxSrc / Math.max(im.naturalWidth, im.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s);
+  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, c.width, c.height);
+  return { d: x.getImageData(0, 0, c.width, c.height).data, w: c.width, h: c.height };
+}
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+function warp(src, q, w, h) {
+  const { d, w: sw, h: sh } = src, out = new ImageData(w, h), o = out.data;
+  const [x0, y0] = q[0], [x1, y1] = q[1], [x2, y2] = q[2], [x3, y3] = q[3];
+  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3, dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
+  const den = (dx1 * dy2 - dx2 * dy1) || 1e-9;
+  const g = (dx3 * dy2 - dx2 * dy3) / den, hh = (dx1 * dy3 - dx3 * dy1) / den;
+  const a = x1 - x0 + g * x1, b = x3 - x0 + hh * x3, c = x0, dd = y1 - y0 + g * y1, e = y3 - y0 + hh * y3, f = y0;
+  const mx = sw - 1.001, my = sh - 1.001, row = sw * 4; let p = 0;
+  for (let j = 0; j < h; j++) {
+    const v = (j + .5) / h;
+    for (let i = 0; i < w; i++) {
+      const u = (i + .5) / w, z = g * u + hh * v + 1;
+      let sx = (a * u + b * v + c) / z - .5, sy = (dd * u + e * v + f) / z - .5;
+      sx = sx < 0 ? 0 : sx > mx ? mx : sx; sy = sy < 0 ? 0 : sy > my ? my : sy;
+      const ix = sx | 0, iy = sy | 0, fx = sx - ix, fy = sy - iy, i0 = (iy * sw + ix) * 4, i1 = i0 + row;
+      for (let k = 0; k < 3; k++) {
+        const t = d[i0 + k] + (d[i0 + 4 + k] - d[i0 + k]) * fx, bt = d[i1 + k] + (d[i1 + 4 + k] - d[i1 + k]) * fx;
+        o[p + k] = t + (bt - t) * fy;
+      }
+      o[p + 3] = 255; p += 4;
+    }
+  }
+  return out;
+}
+function maxFilter(img) {
+  const { width: w, height: h, data: d } = img, out = new ImageData(w, h), o = out.data;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p = (y * w + x) * 4;
+    for (let k = 0; k < 3; k++) {
+      let m = 0;
+      for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+        const xx = Math.min(w - 1, Math.max(0, x + i)), yy = Math.min(h - 1, Math.max(0, y + j));
+        const v = d[(yy * w + xx) * 4 + k]; if (v > m) m = v;
+      }
+      o[p + k] = m;
+    }
+    o[p + 3] = 255;
+  }
+  return out;
+}
+function applyFilter(cv, f) {
+  if (f === 'original') return;
+  const w = cv.width, h = cv.height, ctx = cv.getContext('2d', { willReadFrequently: true });
+  const img = ctx.getImageData(0, 0, w, h), d = img.data;
+  // estimate paper/background: tiny copy -> max filter (erases text) -> smooth upscale
+  const bw = Math.max(8, Math.round(w / 24)), bh = Math.max(8, Math.round(h / 24));
+  const sm = document.createElement('canvas'); sm.width = bw; sm.height = bh;
+  const sc = sm.getContext('2d', { willReadFrequently: true }); sc.imageSmoothingQuality = 'high'; sc.drawImage(cv, 0, 0, bw, bh);
+  let sd = sc.getImageData(0, 0, bw, bh); sd = maxFilter(maxFilter(sd)); sc.putImageData(sd, 0, 0);
+  const bg = document.createElement('canvas'); bg.width = w; bg.height = h;
+  const bc = bg.getContext('2d', { willReadFrequently: true }); bc.imageSmoothingQuality = 'high'; bc.drawImage(sm, 0, 0, w, h);
+  const b = bc.getImageData(0, 0, w, h).data;
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i] / (b[i] || 1), g = d[i + 1] / (b[i + 1] || 1), bl = d[i + 2] / (b[i + 2] || 1);
+    if (f === 'doc') {
+      // paper -> pure white, ink -> crisp; keeps coloured ink (pens, stamps, logos)
+      const y = .299 * r + .587 * g + .114 * bl;
+      if (y > .84) { d[i] = d[i + 1] = d[i + 2] = 255; continue; }
+      const cc = x => Math.pow(clamp((x - .18) / .64), 1.7) * 255;
+      d[i] = cc(r); d[i + 1] = cc(g); d[i + 2] = cc(bl);
+    } else if (f === 'color') {
+      const cc = x => Math.pow(clamp((x - .1) / .86), 1.3) * 255;
+      d[i] = cc(r); d[i + 1] = cc(g); d[i + 2] = cc(bl);
+    } else {
+      let y = .299 * r + .587 * g + .114 * bl;
+      if (f === 'gray') y = Math.pow(clamp((y - .1) / .85), 1.5);
+      else { y = clamp((y - .58) / .27); y = y * y * (3 - 2 * y); }
+      d[i] = d[i + 1] = d[i + 2] = y * 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function renderScan(im, corners, filter, rot, maxOut) {
+  const src = srcData(im, Math.round(maxOut * 1.35));
+  const q = corners.map(([x, y]) => [x * src.w, y * src.h]);
+  let w = Math.max(dist(q[0], q[1]), dist(q[3], q[2])), h = Math.max(dist(q[0], q[3]), dist(q[1], q[2]));
+  const s = Math.min(1, maxOut / Math.max(w, h)); w = Math.max(16, Math.round(w * s)); h = Math.max(16, Math.round(h * s));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  c.getContext('2d').putImageData(warp(src, q, w, h), 0, 0);
+  applyFilter(c, filter);
+  if (!rot) return c;
+  const r = document.createElement('canvas'), side = rot % 180 !== 0;
+  r.width = side ? h : w; r.height = side ? w : h;
+  const x = r.getContext('2d'); x.translate(r.width / 2, r.height / 2); x.rotate(rot * Math.PI / 180); x.drawImage(c, -w / 2, -h / 2);
+  return r;
+}
+async function finalize(c) {
+  const t = document.createElement('canvas'), s = 300 / Math.max(c.width, c.height);
+  t.width = Math.round(c.width * s); t.height = Math.round(c.height * s);
+  const x = t.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(c, 0, 0, t.width, t.height);
+  return { jpg: await toBlob(c, .88), w: c.width, h: c.height, thumb: t.toDataURL('image/jpeg', .75) };
+}
+/* simple edge finder: looks for the bright page against a darker background */
+function findEdges(im) {
+  const src = srcData(im, 220), { d, w, h } = src, lum = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) lum[i] = .299 * d[i * 4] + .587 * d[i * 4 + 1] + .114 * d[i * 4 + 2];
+  const sorted = Float32Array.from(lum).sort(); const thr = (sorted[(w * h * .15) | 0] + sorted[(w * h * .9) | 0]) / 2;
+  // largest bright component from center-ish seed
+  const seen = new Uint8Array(w * h); let best = null;
+  for (let s = 0; s < w * h; s += 7) {
+    if (seen[s] || lum[s] < thr) continue;
+    const st = [s]; seen[s] = 1; const pts = [];
+    while (st.length) {
+      const p = st.pop(); pts.push(p); const x = p % w, y = (p / w) | 0;
+      for (const n of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, y > 0 ? p - w : -1, y < h - 1 ? p + w : -1])
+        if (n >= 0 && !seen[n] && lum[n] >= thr) { seen[n] = 1; st.push(n); }
+    }
+    if (!best || pts.length > best.length) best = pts;
+  }
+  if (!best || best.length < w * h * .12 || best.length > w * h * .97) return null;
+  let tl = [0, 0, Infinity], tr = [0, 0, -Infinity], br = [0, 0, -Infinity], bl = [0, 0, Infinity];
+  for (const p of best) {
+    const x = p % w, y = (p / w) | 0, s = x + y, df = x - y;
+    if (s < tl[2]) tl = [x, y, s]; if (s > br[2]) br = [x, y, s];
+    if (df > tr[2]) tr = [x, y, df]; if (df < bl[2]) bl = [x, y, df];
+  }
+  return [tl, tr, br, bl].map(([x, y]) => [clamp((x + .5) / w), clamp((y + .5) / h)]);
+}
+
+/* auto crop + clean white, no editor (batch mode and imported photos) */
+async function autoScan(blob) {
+  const im = await loadImg(blob);
+  try {
+    const corners = findEdges(im) || full();
+    const out = await finalize(renderScan(im, corners, DEF_FILTER, 0, 2400));
+    const p = { id: nid(), type: 'img', orig: blob, corners, filter: DEF_FILTER, erot: 0, rot: 0, sigs: [], ...out };
+    S.pages.push(p); return p;
+  } finally { URL.revokeObjectURL(im.src); }
+}
+
+/* ---------- adding files ---------- */
+async function addFiles(list) {
+  const files = [...list]; if (!files.length) return;
+  const pdfs = files.filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+  const imgs = files.filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|heic|webp)$/i.test(f.name));
+  if (!pdfs.length && imgs.length === 1) return openEditor(imgs[0], null, false);
+  busy(true, 'Reading files…', 0);
+  let done = 0; const total = Math.max(1, pdfs.length + imgs.length);
+  for (const f of pdfs) {
+    try {
+      const bytes = await f.arrayBuffer(); const sid = nid();
+      const doc = await pdfjsLib.getDocument({ data: new Uint8Array(bytes.slice(0)) }).promise;
+      S.sources.set(sid, { name: f.name, size: f.size, bytes });
+      for (let i = 1; i <= doc.numPages; i++) {
+        const pg = await doc.getPage(i), vp1 = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: 300 / Math.max(vp1.width, vp1.height) });
+        const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+        await pg.render({ canvasContext: x, viewport: vp }).promise;
+        S.pages.push({ id: nid(), type: 'pdf', src: sid, index: i - 1, num: i, of: doc.numPages, label: f.name, thumb: c.toDataURL('image/jpeg', .75), rot: 0, sigs: [] });
+        busy(true, `Reading ${f.name} · page ${i} of ${doc.numPages}`, (done + i / doc.numPages) / total);
+        pg.cleanup();
+      }
+      doc.destroy();
+    } catch (e) { console.error(e); toast(`Couldn't open ${f.name}. It may be damaged or password-protected.`); }
+    done++;
+  }
+  for (const f of imgs) {
+    busy(true, `Processing ${f.name}`, done / total);
+    try { await autoScan(f); } catch (e) { console.error(e); toast(`Couldn't read ${f.name}`); }
+    done++; await tick();
+  }
+  busy(false); render();
+}
+
+/* ---------- grid ---------- */
+function render() {
+  const n = S.pages.length;
+  $('#empty').hidden = n > 0; $('#pagesView').hidden = n === 0; $('#stats').hidden = n === 0;
+  $('#clearBtn').hidden = n === 0; $('#buildBtn').disabled = n === 0;
+  $('#grid').innerHTML = S.pages.map((p, i) => {
+    const side = p.rot % 180 !== 0;
+    const tf = `transform:rotate(${p.rot}deg)${side ? ' scale(.74)' : ''}`;
+    const title = p.type === 'pdf' ? esc(p.label) : 'Scan';
+    const sub = (p.type === 'pdf' ? `Page ${p.num} of ${p.of}` : `${FILTERS[p.filter]} · ${fmt(p.jpg.size)}`) + (p.sigs.length ? ' · <span class="signed">Signed</span>' : '');
+    return `<li class="card" data-id="${p.id}">
+      <div class="th"${p.type === 'img' ? ' data-a="edit"' : ''}><img src="${p.thumb}" style="${tf}" alt="Page ${i + 1}"></div>
+      <span class="num">${i + 1}</span>${p.type === 'img' ? '<span class="tag">Scan</span>' : ''}
+      <div class="meta"><b title="${title}">${title}</b><small>${sub}</small></div>
+      <div class="cacts"><button data-a="sign" aria-label="Sign page ${i + 1}">${IC.sign}</button><button data-a="rot" aria-label="Rotate page ${i + 1}">${IC.rot}</button>${p.type === 'img' ? `<button data-a="edit" aria-label="Edit scan ${i + 1}">${IC.edit}</button>` : ''}<button data-a="del" aria-label="Delete page ${i + 1}">${IC.del}</button></div>
+    </li>`;
+  }).join('');
+  const used = new Set(S.pages.filter(p => p.type === 'pdf').map(p => p.src));
+  for (const k of [...S.sources.keys()]) if (!used.has(k)) S.sources.delete(k);
+  const scans = S.pages.filter(p => p.type === 'img');
+  const size = [...S.sources.values()].reduce((a, s) => a + s.size, 0) + scans.reduce((a, p) => a + p.jpg.size, 0);
+  $('#sPages').textContent = n; $('#sFiles').textContent = used.size + scans.length; $('#sSize').textContent = fmt(size);
+}
+const sortable = new Sortable($('#grid'), {
+  animation: 180, delay: 200, delayOnTouchOnly: true, touchStartThreshold: 6,
+  ghostClass: 'ghost-card', chosenClass: 'chosen', filter: '.cacts', preventOnFilter: false,
+  onEnd: e => { if (e.oldIndex === e.newIndex) return; const [m] = S.pages.splice(e.oldIndex, 1); S.pages.splice(e.newIndex, 0, m); render(); }
+});
+$('#grid').addEventListener('click', e => {
+  const btn = e.target.closest('[data-a]'); if (!btn) return;
+  const id = btn.closest('.card').dataset.id, i = S.pages.findIndex(p => p.id === id), p = S.pages[i];
+  if (btn.dataset.a === 'del') { S.pages.splice(i, 1); render(); toast('Page deleted'); }
+  else if (btn.dataset.a === 'rot') { p.rot = (p.rot + 90) % 360; render(); }
+  else if (btn.dataset.a === 'edit') openEditor(p.orig, p, false);
+  else if (btn.dataset.a === 'sign') openPlace(p);
+});
+$('#sizeSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; S.size = b.dataset.s;
+  $$('#sizeSeg button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  toast(S.size === 'fit' ? 'Each scan gets its own page size' : `Scans will be placed on ${S.size === 'a4' ? 'A4' : 'US Letter'} pages`);
+});
+let clearArm = 0;
+$('#clearBtn').addEventListener('click', () => {
+  const b = $('#clearBtn');
+  if (Date.now() - clearArm < 3000) { S.pages = []; S.sources.clear(); S.result = null; $('#sOutWrap').hidden = true; b.textContent = 'Clear all'; render(); toast('Everything cleared'); return; }
+  clearArm = Date.now(); b.textContent = 'Tap again to clear';
+  setTimeout(() => { b.textContent = 'Clear all'; }, 3000);
+});
+document.addEventListener('click', e => {
+  const d = e.target.closest('[data-do]'); if (!d) return;
+  if (d.dataset.do === 'add') $('#fileInput').click(); else $('#modeSheet').hidden = false;
+});
+$('#modeSheet').addEventListener('click', e => {
+  const m = e.target.closest('[data-mode]');
+  if (m) { $('#modeSheet').hidden = true; openScanner(m.dataset.mode); }
+  else if (e.target.id === 'modeSheet' || e.target.id === 'modeCancel') $('#modeSheet').hidden = true;
+});
+$('#fileInput').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+// native camera app (fallback when the live camera isn't available)
+let nativeShots = 0;
+$('#camInput').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (scanMode === 'single') return openEditor(f, null, false);
+  busy(true, 'Cleaning up page…'); await tick();
+  try { await autoScan(f); nativeShots++; render(); } catch (err) { console.error(err); toast("That photo couldn't be read"); }
+  busy(false); askNext(`Page ${nativeShots} added`, 'Scan the next page, or finish if that was the last one.', 'Scan next page');
+});
+function askNext(title, sub, go) {
+  $('#nT').textContent = title; $('#nextSheet .sub').textContent = sub; $('#nextGo').textContent = go;
+  $('#nextDone').hidden = !nativeShots; $('#nextSheet').hidden = false;
+}
+$('#nextGo').addEventListener('click', () => { $('#nextSheet').hidden = true; $('#camInput').click(); });
+$('#nextDone').addEventListener('click', () => { $('#nextSheet').hidden = true; toast(`${nativeShots} page${nativeShots > 1 ? 's' : ''} added`); });
+let dragDepth = 0;
+addEventListener('dragenter', e => { if (e.dataTransfer?.types?.includes('Files')) { dragDepth++; document.body.classList.add('drop-on'); } });
+addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('drop-on'); } });
+addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
+addEventListener('drop', e => { if (!e.dataTransfer?.files?.length) return; e.preventDefault(); dragDepth = 0; document.body.classList.remove('drop-on'); addFiles(e.dataTransfer.files); });
+
+/* ---------- live camera ---------- */
+let stream = null, camShots = 0, torchOn = false, scanMode = 'single', camQueue = Promise.resolve();
+const video = $('#video');
+async function openScanner(mode) {
+  scanMode = mode; nativeShots = 0;
+  if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) return $('#camInput').click();
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } } });
+  } catch (e) {
+    // the tap that opened us has expired by now, so ask for one more tap to open the camera app
+    return askNext('Use your camera app', "The live camera isn't available here, so we'll use your phone's camera app instead.", 'Open camera');
+  }
+  const batch = mode === 'batch';
+  $('#camMode').textContent = batch ? 'Multiple pages' : 'Single page';
+  $('#camTip').textContent = batch ? 'Snap each page. They are cleaned up automatically. Tap Done when finished.' : 'Fit the page inside the frame, then tap the shutter';
+  $('#camDone').hidden = !batch;
+  video.srcObject = stream; $('#cam').hidden = false; camShots = 0; updCam(null);
+  try { await video.play(); } catch (e) {}
+  const tr = stream.getVideoTracks()[0], caps = tr.getCapabilities?.() || {};
+  $('#torch').style.visibility = caps.torch ? 'visible' : 'hidden'; torchOn = false;
+}
+function closeScanner() { stream?.getTracks().forEach(t => t.stop()); stream = null; video.srcObject = null; $('#cam').hidden = true; }
+function updCam(thumb) {
+  $('#camCount').hidden = !camShots; $('#camCount').textContent = camShots;
+  if (thumb) $('#camLast').style.backgroundImage = `url(${thumb})`; else if (!camShots) $('#camLast').style.backgroundImage = '';
+}
+$('#shutter').addEventListener('click', async () => {
+  if (!video.videoWidth) return;
+  const c = document.createElement('canvas'); c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext('2d').drawImage(video, 0, 0);
+  const fl = $('#flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+  const blob = await toBlob(c, .95);
+  if (scanMode === 'single') return openEditor(blob, null, true);
+  camQueue = camQueue.then(async () => {
+    try { const p = await autoScan(blob); camShots++; updCam(p.thumb); render(); }
+    catch (e) { console.error(e); toast("Couldn't process that photo"); }
+  });
+});
+$('#torch').addEventListener('click', async () => {
+  try { torchOn = !torchOn; await stream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: torchOn }] }); } catch (e) { toast('Flashlight not available'); }
+});
+$('#camClose').addEventListener('click', closeScanner);
+$('#camDone').addEventListener('click', async () => {
+  busy(true, 'Finishing pages…'); await camQueue; busy(false);
+  closeScanner(); if (camShots) toast(`${camShots} page${camShots > 1 ? 's' : ''} added`);
+});
+
+/* ---------- editor ---------- */
+const full = () => [[0, 0], [1, 0], [1, 1], [0, 1]];
+const ED = { im: null, blob: null, page: null, fromCam: false, corners: null, filter: 'color', rot: 0, step: 1, bw: 0, bh: 0, drag: -1, off: [0, 0] };
+const stage = $('#stage'), box = $('#box'), disp = $('#disp'), ovl = $('#ovl'), pv = $('#pv'), loupe = $('#loupe');
+async function openEditor(blob, page, fromCam) {
+  try { ED.im = await loadImg(blob); } catch (e) { toast("That photo couldn't be opened"); return; }
+  Object.assign(ED, { blob, page, fromCam, filter: page?.filter || DEF_FILTER, rot: page?.erot || 0 });
+  ED.corners = page?.corners ? page.corners.map(c => [...c]) : (findEdges(ED.im) || [[.04, .04], [.96, .04], [.96, .96], [.04, .96]]);
+  $('#edit').hidden = false; step(1);
+}
+function closeEditor() { if (ED.im) URL.revokeObjectURL(ED.im.src); ED.im = null; $('#edit').hidden = true; }
+function step(n) {
+  ED.step = n; $('#t1').hidden = n !== 1; $('#t2').hidden = n !== 2; box.hidden = n !== 1; pv.hidden = n !== 2;
+  $('#edTitle').textContent = n === 1 ? 'Adjust corners' : 'Clean up';
+  $('#edNext').textContent = n === 1 ? 'Next' : (ED.page ? 'Save' : 'Keep scan');
+  $('#edCancel').textContent = ED.fromCam && !ED.page ? 'Retake' : 'Cancel';
+  $$('#chips .chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.f === ED.filter));
+  if (n === 1) requestAnimationFrame(layoutCrop); else preview();
+}
+function layoutCrop() {
+  if (!ED.im) return;
+  const r = stage.getBoundingClientRect(), iw = ED.im.naturalWidth, ih = ED.im.naturalHeight;
+  const s = Math.min((r.width - 48) / iw, (r.height - 48) / ih);
+  const w = Math.round(iw * s), h = Math.round(ih * s), dpr = Math.min(2, devicePixelRatio || 1);
+  box.style.width = w + 'px'; box.style.height = h + 'px';
+  disp.width = Math.round(w * dpr); disp.height = Math.round(h * dpr);
+  disp.getContext('2d').drawImage(ED.im, 0, 0, disp.width, disp.height);
+  ovl.setAttribute('viewBox', `0 0 ${w} ${h}`); ED.bw = w; ED.bh = h; drawOv();
+}
+function drawOv() {
+  const { bw: w, bh: h } = ED, pts = ED.corners.map(([x, y]) => [x * w, y * h]);
+  ovl.innerHTML = `<path d="M0 0H${w}V${h}H0Z M${pts.map(p => p.join(' ')).join(' L')}Z" fill="rgba(0,0,0,.55)" fill-rule="evenodd"/>
+    <polygon points="${pts.map(p => p.join(',')).join(' ')}" fill="rgba(155,231,196,.08)" stroke="#9be7c4" stroke-width="2"/>
+    ${pts.map(p => `<circle class="hd" cx="${p[0]}" cy="${p[1]}" r="13"/>`).join('')}`;
+}
+function drawLoupe(x, y) {
+  loupe.hidden = false;
+  const c = loupe.getContext('2d'), S2 = loupe.width, src = S2 / 3.2;
+  const sx = x * disp.width, sy = y * disp.height;
+  c.fillStyle = '#000'; c.fillRect(0, 0, S2, S2);
+  c.drawImage(disp, sx - src / 2, sy - src / 2, src, src, 0, 0, S2, S2);
+  c.strokeStyle = '#9be7c4'; c.lineWidth = 3; c.beginPath();
+  c.moveTo(S2 / 2, S2 / 2 - 22); c.lineTo(S2 / 2, S2 / 2 + 22); c.moveTo(S2 / 2 - 22, S2 / 2); c.lineTo(S2 / 2 + 22, S2 / 2); c.stroke();
+  const leftSide = !(x < .5 && y < .5);
+  loupe.style.left = leftSide ? '14px' : 'auto'; loupe.style.right = leftSide ? 'auto' : '14px';
+}
+function moveCorner(e) {
+  const r = box.getBoundingClientRect();
+  const x = clamp((e.clientX - r.left + ED.off[0]) / ED.bw), y = clamp((e.clientY - r.top + ED.off[1]) / ED.bh);
+  ED.corners[ED.drag] = [x, y]; drawOv(); drawLoupe(x, y);
+}
+stage.addEventListener('pointerdown', e => {
+  if (ED.step !== 1) return;
+  const r = box.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  let best = -1, bd = 56 * 56;
+  ED.corners.forEach(([cx, cy], i) => { const d = (cx * ED.bw - x) ** 2 + (cy * ED.bh - y) ** 2; if (d < bd) { bd = d; best = i; } });
+  if (best < 0) return;
+  ED.drag = best; ED.off = [ED.corners[best][0] * ED.bw - x, ED.corners[best][1] * ED.bh - y];
+  stage.setPointerCapture(e.pointerId); e.preventDefault(); moveCorner(e);
+});
+stage.addEventListener('pointermove', e => { if (ED.drag >= 0) moveCorner(e); });
+const endDrag = () => { ED.drag = -1; loupe.hidden = true; };
+stage.addEventListener('pointerup', endDrag); stage.addEventListener('pointercancel', endDrag);
+addEventListener('resize', () => { if (!$('#edit').hidden && ED.step === 1) layoutCrop(); });
+let pvT;
+function preview() {
+  clearTimeout(pvT);
+  pvT = setTimeout(() => {
+    if (!ED.im) return;
+    const c = renderScan(ED.im, ED.corners, ED.filter, ED.rot, 1100);
+    pv.width = c.width; pv.height = c.height; pv.getContext('2d').drawImage(c, 0, 0);
+  }, 20);
+}
+$('#chips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return; ED.filter = c.dataset.f;
+  $$('#chips .chip').forEach(x => x.setAttribute('aria-pressed', x === c)); preview();
+});
+$('#rotL').addEventListener('click', () => { ED.rot = (ED.rot + 270) % 360; preview(); });
+$('#rotR').addEventListener('click', () => { ED.rot = (ED.rot + 90) % 360; preview(); });
+$('#edBack').addEventListener('click', () => step(1));
+$('#edFull').addEventListener('click', () => { ED.corners = full(); drawOv(); });
+$('#edAuto').addEventListener('click', () => { const c = findEdges(ED.im); if (c) { ED.corners = c; drawOv(); } else toast("Couldn't find the page edges. Drag the corners by hand."); });
+$('#edCancel').addEventListener('click', closeEditor);
+$('#edNext').addEventListener('click', async () => {
+  if (ED.step === 1) return step(2);
+  busy(true, 'Enhancing scan…'); await tick();
+  try {
+    const out = await finalize(renderScan(ED.im, ED.corners, ED.filter, ED.rot, 2400));
+    const data = { corners: ED.corners, filter: ED.filter, erot: ED.rot, ...out };
+    const editing = ED.page, wasCam = ED.fromCam;
+    if (editing) { Object.assign(editing, data); editing.baseThumb = out.thumb; await composeThumb(editing); }
+    else S.pages.push({ id: nid(), type: 'img', orig: ED.blob, rot: 0, sigs: [], ...data });
+    closeEditor();
+    if (wasCam && !editing) closeScanner();   // single-page mode: one shot, then back to the pages
+    render();
+    toast(editing ? 'Scan updated' : 'Scan added');
+  } catch (e) { console.error(e); toast('Something went wrong while processing the scan'); }
+  busy(false);
+});
+
+/* ---------- signatures ---------- */
+// Signature boxes are stored as fractions of the page as it is displayed (after the PDF's own /Rotate,
+// before the user's rotate button). A = that built-in rotation; box = the page's crop box (or the scan's image rect).
+async function drawSigs(doc, page, sigs, A, box, cache) {
+  for (const s of sigs || []) {
+    let img = cache.get(s.url);
+    if (!img) { img = await doc.embedPng(s.url); cache.set(s.url, img); }
+    const side = A % 180 !== 0, Dw = side ? box.height : box.width, Dh = side ? box.width : box.height;
+    const dx = s.u * Dw, dy = (s.v + s.h) * Dh, dw = s.w * Dw, dh = s.h * Dh;   // bottom-left corner on screen
+    let x, y;
+    if (A === 0) { x = dx; y = box.height - dy; }
+    else if (A === 90) { x = dy; y = dx; }
+    else if (A === 180) { x = box.width - dx; y = dy; }
+    else { x = box.width - dy; y = box.height - dx; }
+    page.drawImage(img, { x: box.x + x, y: box.y + y, width: dw, height: dh, rotate: degrees(A) });
+  }
+}
+const imgOf = url => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+async function composeThumb(p) {
+  if (!p.baseThumb) p.baseThumb = p.thumb;
+  if (!p.sigs.length) { p.thumb = p.baseThumb; return; }
+  const base = await imgOf(p.baseThumb), c = document.createElement('canvas');
+  c.width = base.naturalWidth; c.height = base.naturalHeight;
+  const x = c.getContext('2d'); x.drawImage(base, 0, 0);
+  for (const s of p.sigs) x.drawImage(await imgOf(s.url), s.u * c.width, s.v * c.height, s.w * c.width, s.h * c.height);
+  p.thumb = c.toDataURL('image/jpeg', .8);
+}
+async function pageCanvas(p, max) {
+  const c = document.createElement('canvas'), x = c.getContext('2d');
+  if (p.type === 'img') {
+    const im = await loadImg(p.jpg), s = Math.min(1, max / Math.max(p.w, p.h));
+    c.width = Math.round(p.w * s); c.height = Math.round(p.h * s);
+    x.drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(im.src); return c;
+  }
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(S.sources.get(p.src).bytes.slice(0)) }).promise;
+  const pg = await doc.getPage(p.index + 1), v1 = pg.getViewport({ scale: 1 });
+  const vp = pg.getViewport({ scale: max / Math.max(v1.width, v1.height) });
+  c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+  await pg.render({ canvasContext: x, viewport: vp }).promise; doc.destroy(); return c;
+}
+// trim transparent edges so the box hugs the ink
+function trimToPng(c) {
+  const x = c.getContext('2d'), { width: w, height: h } = c, d = x.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) if (d[(y * w + i) * 4 + 3] > 8) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return null;
+  const pad = 6; x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+  const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+  o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+  return { url: o.toDataURL('image/png'), ar: o.height / o.width };
+}
+const SIG_KEY = 'pocketscan.signature';
+const savedSig = () => { try { return JSON.parse(localStorage.getItem(SIG_KEY)); } catch (e) { return null; } };
+
+/* signature pad */
+const padC = $('#padC'); let padInk = '#111418', padTab = 'draw', padStrokes = [], padCb = null;
+function openPad(cb) {
+  padCb = cb; padStrokes = []; $('#padText').value = ''; $('#padPrev').innerHTML = '&nbsp;';
+  $('#pad').hidden = false; setPadTab('draw');
+}
+function setPadTab(t) {
+  padTab = t; $$('#padTabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t));
+  $('#padDraw').hidden = t !== 'draw'; $('#padType').hidden = t !== 'type';
+  if (t === 'draw') requestAnimationFrame(sizePad); else $('#padText').focus();
+}
+function sizePad() {
+  const dpr = Math.min(3, devicePixelRatio || 1);
+  padC.width = Math.round(padC.clientWidth * dpr); padC.height = Math.round(padC.clientHeight * dpr); redrawPad();
+}
+function redrawPad() {
+  const x = padC.getContext('2d'), dpr = padC.width / (padC.clientWidth || 1);
+  x.clearRect(0, 0, padC.width, padC.height); x.lineCap = x.lineJoin = 'round'; x.strokeStyle = padInk; x.lineWidth = 2.6 * dpr;
+  for (const st of padStrokes) {
+    x.beginPath(); x.moveTo(st[0][0] * dpr, st[0][1] * dpr);
+    if (st.length === 1) x.lineTo(st[0][0] * dpr + .1, st[0][1] * dpr);
+    for (let i = 1; i < st.length - 1; i++) { const m = [(st[i][0] + st[i + 1][0]) / 2, (st[i][1] + st[i + 1][1]) / 2]; x.quadraticCurveTo(st[i][0] * dpr, st[i][1] * dpr, m[0] * dpr, m[1] * dpr); }
+    if (st.length > 1) { const l = st[st.length - 1]; x.lineTo(l[0] * dpr, l[1] * dpr); }
+    x.stroke();
+  }
+  $('#padHint').hidden = padStrokes.length > 0;
+}
+let padDrawing = false;
+const padPt = e => { const r = padC.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+padC.addEventListener('pointerdown', e => { padDrawing = true; padC.setPointerCapture(e.pointerId); padStrokes.push([padPt(e)]); redrawPad(); e.preventDefault(); });
+padC.addEventListener('pointermove', e => {
+  if (!padDrawing) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  for (const ev of evs) padStrokes[padStrokes.length - 1].push(padPt(ev));
+  redrawPad();
+});
+['pointerup', 'pointercancel'].forEach(t => padC.addEventListener(t, () => padDrawing = false));
+$('#padTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setPadTab(b.dataset.t); });
+$('#padText').addEventListener('input', e => { $('#padPrev').textContent = e.target.value || ' '; });
+$$('.ink').forEach(b => b.addEventListener('click', () => {
+  padInk = b.dataset.c; $$('.ink').forEach(i => i.setAttribute('aria-pressed', i === b));
+  $('#padPrev').style.color = padInk; redrawPad();
+}));
+$('#padClear').addEventListener('click', () => { padStrokes = []; redrawPad(); $('#padText').value = ''; $('#padPrev').innerHTML = '&nbsp;'; });
+$('#padCancel').addEventListener('click', () => { $('#pad').hidden = true; });
+$('#padOk').addEventListener('click', async () => {
+  let sig = null;
+  if (padTab === 'draw') { if (padStrokes.length) sig = trimToPng(padC); }
+  else {
+    const t = $('#padText').value.trim();
+    if (t) {
+      try { await document.fonts.load('600 120px Caveat'); } catch (e) {}
+      const c = document.createElement('canvas'), x = c.getContext('2d'); x.font = '600 120px Caveat, cursive';
+      c.width = Math.ceil(x.measureText(t).width) + 40; c.height = 170;
+      x.font = '600 120px Caveat, cursive'; x.fillStyle = padInk; x.textBaseline = 'middle'; x.fillText(t, 20, 85);
+      sig = trimToPng(c);
+    }
+  }
+  if (!sig) return toast(padTab === 'draw' ? 'Draw your signature first' : 'Type your name first');
+  if ($('#padSave').checked) { try { localStorage.setItem(SIG_KEY, JSON.stringify(sig)); } catch (e) {} }
+  $('#pad').hidden = true; padCb?.(sig);
+});
+addEventListener('resize', () => { if (!$('#pad').hidden && padTab === 'draw') sizePad(); });
+
+/* place signatures on a page */
+const PL = { p: null, sigs: [], ar: 1 }, pbox = $('#pbox'), pcv = $('#pcv');
+async function openPlace(p) {
+  busy(true, 'Opening page…');
+  try {
+    const c = await pageCanvas(p, 1600);
+    pcv.width = c.width; pcv.height = c.height; pcv.getContext('2d').drawImage(c, 0, 0);
+    PL.p = p; PL.sigs = p.sigs.map(s => ({ ...s })); PL.ar = c.height / c.width;
+    $('#plTitle').textContent = `Sign page ${S.pages.indexOf(p) + 1}`;
+    $('#place').hidden = false; requestAnimationFrame(layoutPlace);
+    if (!PL.sigs.length && !savedSig()) setTimeout(() => openPad(addSig), 250);
+  } catch (e) { console.error(e); toast("Couldn't open that page"); }
+  busy(false);
+}
+function layoutPlace() {
+  const r = $('#pstage').getBoundingClientRect(), s = Math.min((r.width - 40) / 1, (r.height - 40) / PL.ar);
+  pbox.style.width = Math.round(s) + 'px'; pbox.style.height = Math.round(s * PL.ar) + 'px'; drawSigEls();
+}
+function drawSigEls() {
+  pbox.querySelectorAll('.sig').forEach(n => n.remove());
+  PL.sigs.forEach((s, i) => {
+    const el = document.createElement('div'); el.className = 'sig'; el.dataset.i = i;
+    el.style.cssText = `left:${s.u * 100}%;top:${s.v * 100}%;width:${s.w * 100}%;height:${s.h * 100}%`;
+    el.innerHTML = `<img src="${s.url}" alt=""><button class="x" aria-label="Remove">${IC.x}</button><span class="rs" aria-hidden="true"></span>`;
+    pbox.appendChild(el);
+  });
+}
+function addSig(sig, width = .36) {
+  let w = width, h = w * sig.ar / PL.ar;
+  if (h > .16) { h = .16; w = h * PL.ar / sig.ar; }
+  const u = clamp(.92 - w, .02, .98 - w); let v = clamp(.86 - h, .02, .98 - h);
+  const hits = v => PL.sigs.some(o => u < o.u + o.w && o.u < u + w && v < o.v + o.h && o.v < v + h);
+  while (hits(v) && v > .04) v = Math.max(.02, v - .03);   // stack new items above earlier ones
+  PL.sigs.push({ url: sig.url, ar: sig.ar, w, h, u, v });
+  drawSigEls();
+}
+let plDrag = null;
+pbox.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.sig'); if (!el) return;
+  const i = +el.dataset.i;
+  if (e.target.closest('.x')) { PL.sigs.splice(i, 1); drawSigEls(); return; }
+  const r = pbox.getBoundingClientRect();
+  plDrag = { i, el, mode: e.target.closest('.rs') ? 'size' : 'move', x: e.clientX, y: e.clientY, s: { ...PL.sigs[i] }, W: r.width, H: r.height };
+  el.setPointerCapture(e.pointerId); e.preventDefault();
+});
+pbox.addEventListener('pointermove', e => {
+  if (!plDrag) return;
+  const { i, el, s, W, H } = plDrag, dx = (e.clientX - plDrag.x) / W, dy = (e.clientY - plDrag.y) / H, g = PL.sigs[i];
+  if (plDrag.mode === 'move') { g.u = clamp(s.u + dx, 0, 1 - g.w); g.v = clamp(s.v + dy, 0, 1 - g.h); }
+  else {
+    g.w = clamp(s.w + dx, .05, 1 - s.u); g.h = g.w * g.ar / PL.ar;
+    if (s.v + g.h > 1) { g.h = 1 - s.v; g.w = g.h * PL.ar / g.ar; }
+  }
+  el.style.cssText = `left:${g.u * 100}%;top:${g.v * 100}%;width:${g.w * 100}%;height:${g.h * 100}%`;
+});
+['pointerup', 'pointercancel'].forEach(t => pbox.addEventListener(t, () => plDrag = null));
+addEventListener('resize', () => { if (!$('#place').hidden) layoutPlace(); });
+$('#plSig').addEventListener('click', () => { const s = savedSig(); s ? addSig(s) : openPad(addSig); });
+$('#plNew').addEventListener('click', () => openPad(addSig));
+$('#plDate').addEventListener('click', () => {
+  const t = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  const c = document.createElement('canvas'), x = c.getContext('2d'); x.font = '500 64px Inter, sans-serif';
+  c.width = Math.ceil(x.measureText(t).width) + 30; c.height = 100;
+  x.font = '500 64px Inter, sans-serif'; x.fillStyle = '#111418'; x.textBaseline = 'middle'; x.fillText(t, 15, 52);
+  addSig(trimToPng(c), .3);
+});
+$('#plCancel').addEventListener('click', () => { $('#place').hidden = true; });
+$('#plDone').addEventListener('click', async () => {
+  const p = PL.p; p.sigs = PL.sigs; await composeThumb(p);
+  $('#place').hidden = true; render();
+  if (p.sigs.length) toast('Signature added. It will be in the PDF');
+});
+
+/* ---------- build + share ---------- */
+const today = () => new Date().toISOString().slice(0, 10);
+const fname = () => (($('#fname').value || '').trim().replace(/[\\/:*?"<>|]+/g, '-') || `Scan ${today()}`) + '.pdf';
+$('#buildBtn').addEventListener('click', async () => {
+  const n = S.pages.length; if (!n) return;
+  busy(true, 'Building PDF…', 0);
+  try {
+    const out = await PDFDocument.create(), cache = new Map(), sigCache = new Map();
+    const SZ = { a4: [595.28, 841.89], letter: [612, 792] };
+    for (let i = 0; i < n; i++) {
+      const p = S.pages[i];
+      if (p.type === 'pdf') {
+        let src = cache.get(p.src);
+        if (!src) { src = await PDFDocument.load(S.sources.get(p.src).bytes, { ignoreEncryption: true }); cache.set(p.src, src); }
+        const [cp] = await out.copyPages(src, [p.index]);
+        const A = ((cp.getRotation().angle % 360) + 360) % 360;
+        out.addPage(cp);
+        await drawSigs(out, cp, p.sigs, A, cp.getCropBox(), sigCache);
+        cp.setRotation(degrees((A + p.rot) % 360));
+      } else {
+        const img = await out.embedJpg(await p.jpg.arrayBuffer());
+        let pw, ph;
+        if (S.size === 'fit') { const s = 842 / Math.max(p.w, p.h); pw = p.w * s; ph = p.h * s; }
+        else { [pw, ph] = SZ[S.size]; if (p.w > p.h) [pw, ph] = [ph, pw]; }
+        const pg = out.addPage([pw, ph]), m = S.size === 'fit' ? 0 : 18;
+        const s = Math.min((pw - m * 2) / p.w, (ph - m * 2) / p.h), dw = p.w * s, dh = p.h * s;
+        pg.drawImage(img, { x: (pw - dw) / 2, y: (ph - dh) / 2, width: dw, height: dh });
+        await drawSigs(out, pg, p.sigs, 0, { x: (pw - dw) / 2, y: (ph - dh) / 2, width: dw, height: dh }, sigCache);
+        if (p.rot) pg.setRotation(degrees(p.rot));
+      }
+      busy(true, `Building PDF · page ${i + 1} of ${n}`, (i + 1) / n); await tick();
+    }
+    out.setTitle(`Scan ${today()}`); out.setCreator('PocketScan'); out.setProducer('pdf-lib');
+    const bytes = await out.save();
+    S.result = new Blob([bytes], { type: 'application/pdf' }); S.imgs = null;
+    $('#sOut').textContent = fmt(S.result.size); $('#sOutWrap').hidden = false;
+    $('#rSub').textContent = `${n} page${n > 1 ? 's' : ''} · ${fmt(S.result.size)}`;
+    if (!$('#fname').value) $('#fname').value = `Scan ${today()}`;
+    const canShare = !!navigator.canShare && navigator.canShare({ files: [new File([S.result], 'a.pdf', { type: 'application/pdf' })] });
+    $('#shPdf').hidden = !canShare; $('#shImg').hidden = !canShare;
+    $('#shareNote').innerHTML = canShare
+      ? "Share opens your phone's share sheet. Instagram only accepts images, not PDFs, so use <b>Share as images</b> for Instagram."
+      : "This browser can't share files directly. Download the PDF, then send it from your Files or Photos app. On a phone, open this page in Safari or Chrome to share straight to an app.";
+    $('#result').hidden = false;
+    if (canShare) prepImages(S.result);
+  } catch (e) { console.error(e); toast('Build failed: ' + e.message, 4000); }
+  busy(false);
+});
+async function prepImages(blob) {
+  const btn = $('#shImg'), label = btn.querySelector('span'); btn.disabled = true; label.textContent = 'Preparing images…';
+  try {
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise, files = [];
+    const base = fname().replace(/\.pdf$/, '');
+    for (let i = 1; i <= doc.numPages; i++) {
+      if (S.result !== blob) { doc.destroy(); return; }
+      const pg = await doc.getPage(i), v1 = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: Math.min(3, 1800 / Math.max(v1.width, v1.height)) });
+      const c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+      await pg.render({ canvasContext: x, viewport: vp }).promise;
+      files.push(new File([await toBlob(c, .9)], `${base}-${String(i).padStart(2, '0')}.jpg`, { type: 'image/jpeg' }));
+      label.textContent = `Preparing images… ${i}/${doc.numPages}`;
+    }
+    doc.destroy(); S.imgs = files; btn.disabled = false; label.textContent = `Share as images (${files.length})`;
+  } catch (e) { console.error(e); label.textContent = 'Images unavailable'; }
+}
+async function share(files, title) {
+  try { await navigator.share({ files, title }); }
+  catch (e) { if (e.name !== 'AbortError') toast("Couldn't share. Try Download instead."); }
+}
+$('#shPdf').addEventListener('click', () => {
+  const f = new File([S.result], fname(), { type: 'application/pdf' }); share([f], fname());
+});
+$('#shImg').addEventListener('click', () => {
+  if (!S.imgs) return;
+  if (!navigator.canShare({ files: S.imgs })) return toast('Your device can’t share this many images at once');
+  share(S.imgs, fname());
+});
+$('#dl').addEventListener('click', () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(S.result); a.download = fname();
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+});
+$('#rClose').addEventListener('click', () => { $('#result').hidden = true; });
+$('#result').addEventListener('click', e => { if (e.target.id === 'result') $('#result').hidden = true; });
+$('#fname').addEventListener('change', () => { if (S.result) prepImages(S.result); });
+
+render();
+}
+libsReady.then(ok => {
+  if (ok) return startApp();
+  document.body.insertAdjacentHTML('beforeend', '<div style="position:fixed;inset:0;z-index:99;background:#0d0f12;display:grid;place-items:center;padding:24px;text-align:center"><div><h2 style="font-family:Space Grotesk,sans-serif">Couldn\'t load the PDF tools</h2><p style="color:#8d96a3">Check your internet connection, then reload. If you opened this file inside another app, open it in Safari or Chrome instead.</p><button class="btn pri" onclick="location.reload()">Reload</button></div></div>');
+});
+</script>
+</body>
+</html>
